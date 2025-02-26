@@ -238,8 +238,131 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
+bool cmp_in_sort(struct list_head *a, struct list_head *b, bool descend)
+{
+    const element_t *ele_a = q_entry(a);
+    const element_t *ele_b = q_entry(b);
+    if (descend) {
+        return strcmp(ele_a->value, ele_b->value) >= 0 ? 0 : 1;
+    } else {
+        return strcmp(ele_a->value, ele_b->value) >= 0 ? 1 : 0;
+    }
+}
+
+struct list_head *merge(bool descend, struct list_head *b, struct list_head *a)
+{
+    struct list_head *head = NULL, **tail = &head;
+
+    for (;;) {
+        if (cmp_in_sort(a, b, descend)) {
+            *tail = a;
+            tail = &a->next;
+            a = a->next;
+            if (!a) {
+                *tail = b;
+                break;
+            }
+        } else {
+            *tail = b;
+            tail = &b->next;
+            b = b->next;
+            if (!b) {
+                *tail = a;
+                break;
+            }
+        }
+    }
+    return head;
+}
+
+void merge_final(bool descend,
+                 struct list_head *head,
+                 struct list_head *b,
+                 struct list_head *a)
+{
+    struct list_head **tail = &head, *prev = NULL;
+
+    for (;;) {
+        if (cmp_in_sort(a, b, descend)) {
+            *tail = a;
+            a->prev = prev;
+            prev = a;
+            tail = &a->next;
+            a = a->next;
+            if (!a) {
+                *tail = b;
+                break;
+            }
+        } else {
+            *tail = b;
+            b->prev = prev;
+            prev = b;
+            tail = &b->next;
+            b = b->next;
+            if (!b) {
+                *tail = a;
+                break;
+            }
+        }
+    }
+    // Make linked list Circular
+    head->prev = *tail;
+}
+
 /* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend) {}
+void q_sort(struct list_head *head, bool descend)
+{
+    // Ref from
+    // list_sort.c(https://github.com/torvalds/linux/blob/master/lib/list_sort.c)
+    // with the help of 你所不知道的 C 語言: linked list 和非連續記憶體
+    // (https://hackmd.io/@sysprog/c-linked-list#Linux-%E6%A0%B8%E5%BF%83%E7%9A%84-list_sort-%E5%AF%A6%E4%BD%9C)
+    if (!head || list_empty(head) || list_is_singular(head))
+        return;
+
+    struct list_head *list = head->next, *pending = NULL;
+    size_t count = 0; /* Count of pending */
+
+    /* Convert to a null-terminated singly-linked list. */
+    head->prev->next = NULL;
+    do {
+        size_t bits;
+        struct list_head **tail = &pending;
+
+        /* Find the least-significant clear bit in count */
+        for (bits = count; bits & 1; bits >>= 1)
+            tail = &(*tail)->prev;
+        /* Do the indicated merge */
+        if (bits) {
+            struct list_head *a = *tail, *b = a->prev;
+
+            a = merge(descend, b, a);
+            /* Install the merged result in place of the inputs */
+            a->prev = b->prev;
+            *tail = a;
+        }
+
+        /* Move one element from input list to pending */
+        // Remove from list's head. Insert from pending's tail.
+        list->prev = pending;
+        pending = list;
+        list = list->next;
+        pending->next = NULL;
+        count++;
+    } while (list);
+    /* End of input; merge together all the pending lists. */
+    list = pending;
+    pending = pending->prev;
+    for (;;) {
+        struct list_head *next = pending->prev;
+
+        if (!next)
+            break;
+        list = merge(descend, pending, list);
+        pending = next;
+    }
+    // Maintain the prev ptr
+    merge_final(descend, head, pending, list);
+}
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
