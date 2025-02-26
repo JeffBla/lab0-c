@@ -122,7 +122,7 @@ bool q_delete_mid(struct list_head *head)
     struct list_head *curr = head->next;
     int cnt = 0;
     while (curr) {
-        if (cnt % 2 == 1)
+        if ((cnt & 1) == 1)
             mid = mid->next;
         cnt++;
         curr = curr->next;
