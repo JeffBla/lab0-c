@@ -6,7 +6,12 @@
 
 #define new_q_element() ((element_t *) test_malloc(sizeof(element_t)))
 #define q_entry(node) list_entry(node, element_t, list)
-
+#define swap(x, y, tmp) \
+    {                   \
+        tmp = x;        \
+        x = y;          \
+        y = tmp;        \
+    }
 
 /* Notice: sometimes, Cppcheck would find the potential NULL pointer bugs,
  * but some of them cannot occur. You can suppress them by adding the
@@ -178,12 +183,59 @@ void q_swap(struct list_head *head)
 }
 
 /* Reverse elements in queue */
-void q_reverse(struct list_head *head) {}
+void q_reverse(struct list_head *head)
+{
+    if (!head || list_empty(head))
+        return;
+    // Reverse c-str ptr address
+    char *tmp_for_swap = NULL;
+    element_t *forward_e = NULL, *backward_e = NULL;
+    for (forward_e = q_entry(head->next), backward_e = q_entry(head->prev);
+         forward_e != backward_e; forward_e = q_entry(forward_e->list.next),
+        backward_e = q_entry(backward_e->list.prev)) {
+        swap(backward_e->value, forward_e->value, tmp_for_swap);
+        if (forward_e->list.next == &backward_e->list)
+            break;
+    }
+}
+
+void q_reverse_only_k(struct list_head *front, int k)
+{
+    // Reverse c-str ptr address
+    // Init back
+    struct list_head *back = front;
+    for (int i = 1; i < k; i++) {
+        back = back->next;
+    }
+    // Reverse
+    char *tmp_for_swap = NULL;
+    while (front != back) {
+        swap(q_entry(front)->value, q_entry(back)->value, tmp_for_swap);
+        if (front->next == back)
+            break;
+
+        front = front->next;
+        back = back->prev;
+    }
+}
 
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
-    // https://leetcode.com/problems/reverse-nodes-in-k-group/
+    if (!head || list_empty(head))
+        return;
+    struct list_head *curr = head->next, *end = head->next;
+    while (curr) {
+        int cnt = 0;
+        while (cnt < k && end) {
+            end = end->next;
+            cnt++;
+        }
+        if (cnt != k)
+            break;
+        q_reverse_only_k(curr, k);
+        curr = end;
+    }
 }
 
 /* Sort elements of queue in ascending/descending order */
