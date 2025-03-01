@@ -6,6 +6,7 @@
 
 #define new_q_element() ((element_t *) test_malloc(sizeof(element_t)))
 #define q_entry(node) list_entry(node, element_t, list)
+#define ctx_entry(node) list_entry(node, queue_contex_t, chain)
 #define swap(x, y, tmp) \
     {                   \
         tmp = x;        \
@@ -254,12 +255,13 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
+void break_circular(struct list_head *head)
+{
+    head->prev->next = NULL;
+}
+
 bool cmp_in_sort(struct list_head *a, struct list_head *b, bool descend)
 {
-    if (!a)
-        return !descend;
-    if (!b)
-        return descend;
     const element_t *ele_a = q_entry(a);
     const element_t *ele_b = q_entry(b);
     int cmp = strcmp(ele_a->value, ele_b->value);
@@ -270,25 +272,19 @@ struct list_head *merge(bool descend, struct list_head *b, struct list_head *a)
 {
     struct list_head *head = NULL, **tail = &head;
 
-    for (;;) {
+    while (a && b) {
         if (cmp_in_sort(a, b, descend)) {
             *tail = a;
             tail = &a->next;
             a = a->next;
-            if (!a) {
-                *tail = b;
-                break;
-            }
         } else {
             *tail = b;
             tail = &b->next;
             b = b->next;
-            if (!b) {
-                *tail = a;
-                break;
-            }
         }
     }
+    *tail = a ? a : b;
+
     return head;
 }
 
@@ -299,29 +295,24 @@ void merge_final(bool descend,
 {
     struct list_head **tail = &head->next, *prev = head;
 
-    for (;;) {
+    while (a && b) {
         if (cmp_in_sort(a, b, descend)) {
             *tail = a;
             a->prev = prev;
             prev = a;
             tail = &a->next;
             a = a->next;
-            if (!a) {
-                *tail = b;
-                break;
-            }
+
         } else {
             *tail = b;
             b->prev = prev;
             prev = b;
             tail = &b->next;
             b = b->next;
-            if (!b) {
-                *tail = a;
-                break;
-            }
         }
     }
+    *tail = a ? a : b;
+
     // Make rest linked list nodes doubly linked
     while (*tail) {
         (*tail)->prev = prev;
@@ -431,10 +422,59 @@ int q_descend(struct list_head *head)
     return q_ascend_descend(head, head->next, true, &max);
 }
 
+bool list_is_2(struct list_head *head)
+{
+    const struct list_head *head_next = head->next;
+    return (!list_empty(head) && !list_is_singular(head) &&
+            head_next->next == head->prev);
+}
+
+void _q_merge(struct list_head *head,
+              bool descend,
+              bool is_final,
+              struct list_head *empty_head)
+{
+    struct list_head *first, *second;
+    queue_contex_t *ctx1, *ctx2;
+
+    first = head->next;
+    list_del(first);
+    ctx1 = ctx_entry(first);
+    break_circular(ctx1->q);
+
+    second = head->next;
+    list_del(second);
+    ctx2 = ctx_entry(second);
+    break_circular(ctx2->q);
+
+    // if (is_final) {
+    merge_final(descend, ctx1->q, ctx1->q->next, ctx2->q->next);
+    // } else {
+    //     ctx1->q->next = merge(descend, ctx1->q->next, ctx2->q->next);
+    // }
+    ctx1->size += ctx2->size;
+    ctx2->q->next = ctx2->q;
+    ctx2->q->prev = ctx2->q;
+    ctx2->size = 0;
+    list_add(&ctx2->chain, empty_head);
+
+    list_add(&ctx1->chain, head);
+}
+
 /* Merge all the queues into one sorted queue, which is in ascending/descending
  * order */
 int q_merge(struct list_head *head, bool descend)
 {
-    // https://leetcode.com/problems/merge-k-sorted-lists/
-    return 0;
+    if (!head || list_empty(head))
+        return 0;
+
+    LIST_HEAD(empty_head);
+    while (!list_is_2(head)) {
+        _q_merge(head, descend, false, &empty_head);
+    }
+    _q_merge(head, descend, true, &empty_head);
+
+    list_splice_tail(&empty_head, head);
+    const queue_contex_t *merged_ctx = ctx_entry(head->next);
+    return merged_ctx->size;
 }
