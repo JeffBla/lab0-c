@@ -85,7 +85,7 @@ element_t *q_remove_mid(struct list_head *head,
     if (!head || list_empty(head))
         return NULL;
     list_del(target);
-    if (!sp) {
+    if (sp) {
         strncpy(sp, q_entry(target)->value, bufsize - 1);
         sp[bufsize - 1] = '\0';
     }
