@@ -145,24 +145,27 @@ bool q_delete_dup(struct list_head *head)
     if (!head || list_empty(head))
         return false;
     struct list_head *prev = head, *curr = head->next;
-    while (curr) {
+    while (curr != head) {
         bool isDup = false;
-        while (curr->next &&
+        while (curr->next != head &&
                strcmp(q_entry(curr)->value, q_entry(curr->next)->value) == 0) {
             isDup = true;
             curr = curr->next;
         }
+        struct list_head *curr_next = curr->next;
         if (isDup) {
-            struct list_head *rm_target = prev->next;
-            prev->next = curr->next;
-            curr->next->prev = prev;
-            while (rm_target != prev->next) {
+            struct list_head *rm_target = prev->next, *rm_next_target;
+            prev->next = curr_next;
+            curr_next->prev = prev;
+            while (rm_target != curr_next) {
+                rm_next_target = rm_target->next;
                 q_release_element(q_entry(rm_target));
+                rm_target = rm_next_target;
             }
         } else {
-            prev = prev->next;
+            prev = curr;
         }
-        curr = curr->next;
+        curr = curr_next;
     }
     return true;
 }
