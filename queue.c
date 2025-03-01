@@ -126,12 +126,14 @@ bool q_delete_mid(struct list_head *head)
     struct list_head *mid = head->next;
     struct list_head *curr = head->next;
     int cnt = 0;
-    while (curr) {
+    while (curr != head) {
         if ((cnt & 1) == 1)
             mid = mid->next;
         cnt++;
         curr = curr->next;
     }
+    if (mid == head)
+        return false;
     list_del(mid);
     q_release_element(q_entry(mid));
     return true;
