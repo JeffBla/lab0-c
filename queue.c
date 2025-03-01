@@ -337,8 +337,7 @@ void q_sort(struct list_head *head, bool descend)
     struct list_head *list = head->next, *pending = NULL;
     size_t count = 0; /* Count of pending */
 
-    /* Convert to a null-terminated singly-linked list. */
-    head->prev->next = NULL;
+    break_circular(head);
     do {
         size_t bits;
         struct list_head **tail = &pending;
