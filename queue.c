@@ -241,9 +241,9 @@ void q_reverseK(struct list_head *head, int k)
     if (!head || list_empty(head))
         return;
     struct list_head *curr = head->next, *end = head->next;
-    while (curr) {
+    while (curr != head) {
         int cnt = 0;
-        while (cnt < k && end) {
+        while (cnt < k && end != head) {
             end = end->next;
             cnt++;
         }
