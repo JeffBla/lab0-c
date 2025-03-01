@@ -294,7 +294,7 @@ void merge_final(bool descend,
                  struct list_head *b,
                  struct list_head *a)
 {
-    struct list_head **tail = &head, *prev = NULL;
+    struct list_head **tail = &head->next, *prev = head;
 
     for (;;) {
         if (cmp_in_sort(a, b, descend)) {
@@ -319,8 +319,15 @@ void merge_final(bool descend,
             }
         }
     }
-    // Make linked list Circular
-    head->prev = *tail;
+    // Make rest linked list nodes doubly linked
+    while (*tail) {
+        (*tail)->prev = prev;
+        prev = *tail;
+        tail = &(*tail)->next;
+    }
+    // Make list circular
+    head->prev = prev;
+    prev->next = head;
 }
 
 /* Sort elements of queue in ascending/descending order */
