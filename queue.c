@@ -40,6 +40,7 @@ void q_free(struct list_head *head)
         list_del(&entry->list);
         q_release_element(entry);
     }
+    free(head);
 }
 
 /* Insert an element at head of queue */
