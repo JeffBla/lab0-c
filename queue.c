@@ -253,13 +253,14 @@ void q_reverseK(struct list_head *head, int k)
 
 bool cmp_in_sort(struct list_head *a, struct list_head *b, bool descend)
 {
+    if (!a)
+        return !descend;
+    if (!b)
+        return descend;
     const element_t *ele_a = q_entry(a);
     const element_t *ele_b = q_entry(b);
-    if (descend) {
-        return strcmp(ele_a->value, ele_b->value) >= 0 ? 0 : 1;
-    } else {
-        return strcmp(ele_a->value, ele_b->value) >= 0 ? 1 : 0;
-    }
+    int cmp = strcmp(ele_a->value, ele_b->value);
+    return descend ? (cmp > 0) : (cmp < 0);
 }
 
 struct list_head *merge(bool descend, struct list_head *b, struct list_head *a)
