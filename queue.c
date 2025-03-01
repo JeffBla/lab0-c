@@ -388,20 +388,47 @@ void q_sort(struct list_head *head, bool descend)
     merge_final(descend, head, pending, list);
 }
 
+int q_ascend_descend(struct list_head *head,
+                     struct list_head *curr,
+                     bool descend,
+                     char **pivot)
+{
+    int q_sz = 0;
+    if (curr->next != head) {
+        q_sz = q_ascend_descend(head, curr->next, descend, pivot);
+    }
+    element_t *target = q_entry(curr);
+    int cmp = strcmp(target->value, *pivot);
+    if ((descend && (cmp >= 0)) || (!descend && (cmp <= 0))) {
+        *pivot = target->value;
+        q_sz++;
+    } else {
+        curr->prev->next = curr->next;
+        curr->next->prev = curr->prev;
+        q_release_element(q_entry(curr));
+    }
+
+    return q_sz;
+}
+
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
 int q_ascend(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return 0;
+    if (!head || list_empty(head) || list_is_singular(head))
+        return q_size(head);
+    char *min = "~~~~~~~";
+    return q_ascend_descend(head, head->next, false, &min);
 }
 
 /* Remove every node which has a node with a strictly greater value anywhere to
  * the right side of it */
 int q_descend(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return 0;
+    if (!head || list_empty(head) || list_is_singular(head))
+        return q_size(head);
+    char *max = "";
+    return q_ascend_descend(head, head->next, true, &max);
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending/descending
