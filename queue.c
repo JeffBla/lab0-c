@@ -45,37 +45,37 @@ void q_free(struct list_head *head)
 }
 
 /* Insert an element at head of queue */
-bool q_insert_head(struct list_head *head, char *s)
+bool q_insert_common(struct list_head *head,
+                     char *s,
+                     void (*insert_fn)(struct list_head *, struct list_head *))
 {
     if (!head)
         return false;
+
     element_t *new_node = new_q_element();
     if (!new_node)
         return false;
+
     new_node->value = test_strdup(s);
     if (new_node->value == NULL) {
         free(new_node);
         return false;
     }
-    list_add(&new_node->list, head);
+
+    insert_fn(&new_node->list, head);
     return true;
+}
+
+/* Insert an element at head of queue */
+bool q_insert_head(struct list_head *head, char *s)
+{
+    return q_insert_common(head, s, list_add);
 }
 
 /* Insert an element at tail of queue */
 bool q_insert_tail(struct list_head *head, char *s)
 {
-    if (!head)
-        return false;
-    element_t *new_node = new_q_element();
-    if (!new_node)
-        return false;
-    new_node->value = test_strdup(s);
-    if (new_node->value == NULL) {
-        free(new_node);
-        return false;
-    }
-    list_add_tail(&new_node->list, head);
-    return true;
+    return q_insert_common(head, s, list_add_tail);
 }
 
 element_t *q_remove_mid(struct list_head *head,
